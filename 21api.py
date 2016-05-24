@@ -9,7 +9,7 @@ from flask import Flask
 from flask import request
 from flask import send_from_directory
 from flask import jsonify
-from two1.lib.wallet import Wallet
+from two1.wallet import Wallet
 
 app = Flask(__name__)
 
@@ -17,23 +17,25 @@ app = Flask(__name__)
 
 from two1.commands import status
 from two1.commands import log
-from two1.lib.server import rest_client
+from two1.server import rest_client
 from two1.commands.config import Config
-from two1.commands.config import TWO1_HOST
+from two1.server.machine_auth_wallet import MachineAuthWallet
+from two1 import TWO1_HOST
 
 conf = Config()
+username = Config().username
 host = TWO1_HOST
 wallet = Wallet()
-code = "<add-authorization-code-here>"
+code = "123456"
         
 @app.route('/dashboard', methods=['GET'])
 def dashboard():  
         if request.args.get("code") != code:
             return custom_401()
-        client = rest_client.TwentyOneRestClient(host, conf.machine_auth, conf.username)
-        status_mining = status.status_mining(conf, client)
-        status_wallet = status.status_wallet(conf, client)  
-        status_account = status.status_account(conf)  
+        client = rest_client.TwentyOneRestClient(host, TwentyOneRestClient(wallet), username)
+        status_mining = status.status_mining(client)
+        status_wallet = status.status_wallet(client, wallet)  
+        status_account = status.status_account(client, wallet)  
         status_earnings = client.get_earnings()
         dashInfo = {"status_mining":status_mining, "status_wallet": status_wallet['wallet'], "status_account": status_account, "status_earnings": status_earnings}      
         return json.dumps(dashInfo, default=lambda o: o.__dict__, sort_keys=True, indent=4)
@@ -43,10 +45,10 @@ def mine():
         if request.args.get("code") != code:
             return custom_401()
         os.system('21 mine')  
-        client = rest_client.TwentyOneRestClient(host, conf.machine_auth, conf.username)
-        status_mining = status.status_mining(conf, client)  
-        status_wallet = status.status_wallet(conf, client)
-        status_account = status.status_account(conf)
+        client = rest_client.TwentyOneRestClient(host, MachineAuthWallet(wallet), username)
+        status_mining = status.status_mining(client)  
+        status_wallet = status.status_wallet(client, wallet)
+        status_account = status.status_account(client, wallet)
         status_earnings = client.get_earnings() 
         dashInfo = {"status_mining":status_mining, "status_wallet": status_wallet['wallet'], "status_account": status_account, "status_earnings": status_earnings}          
         return json.dumps(dashInfo, default=lambda o: o.__dict__, sort_keys=True, indent=4) 
@@ -56,10 +58,10 @@ def flush():
         if request.args.get("code") != code:
             return custom_401()
         os.system('21 flush')  
-        client = rest_client.TwentyOneRestClient(host, conf.machine_auth, conf.username)
-        status_mining = status.status_mining(conf, client)
-        status_wallet = status.status_wallet(conf, client)
-        status_account = status.status_account(conf)
+        client = rest_client.TwentyOneRestClient(host, MachineAuthWallet(wallet), username)
+        status_mining = status.status_mining(client)
+        status_wallet = status.status_wallet(client, wallet)
+        status_account = status.status_account(client, wallet)
         status_earnings = client.get_earnings()
         dashInfo = {"status_mining":status_mining, "status_wallet": status_wallet['wallet'], "status_account": status_account, "status_earnings": status_earnings}
         return json.dumps(dashInfo, default=lambda o: o.__dict__, sort_keys=True, indent=4)
